@@ -1,5 +1,5 @@
 {
-    "name": "twig/optimizations",
+    "name": "dstone/TwigOptimizations",
     "description": "Twig extensions which enable some experimental optimizations on compiled code",
     "keywords": ["twig","getAttribute", "optimzations"],
     "homepage": "https://github.com/superdav42/TwigOptimizations",
