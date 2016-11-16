@@ -24,7 +24,7 @@ class Twig_Optimizations_Node_Expression_ArrayAccess extends Twig_Node_Expressio
         $compiler
             ->subcompile($this->getNode('node'))
             ->raw('[')
-            ->raw($this->getAttribute('name'))
+            ->repr($this->getAttribute('name'))
             ->raw(']')
         ;
     }
