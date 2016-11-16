@@ -51,7 +51,7 @@ class Twig_Optimizations_Extension_GetAttributeOptimizer extends Twig_Extension 
     {
         $templateName = $template->getTemplateName();
 
-        $this->types[$templateName][$nodeId] = array('attr' => (string) $item, 'class' => is_array($object) ? 'array' : get_class($object));
+        $this->types[$templateName][$nodeId] = array('attr' => (string) $item, 'class' => is_array($object) ? 'array' : (is_object($object) ? get_class($object) : false));
 
         return $result;
     }
