@@ -98,7 +98,7 @@ class Twig_Optimizations_NodeVisitor_GetAttributeOptimizer extends Twig_BaseNode
 
                     $attrNode = new Twig_Node_Expression_MethodCall(
                         clone $node->getNode('node'),
-                        $type['attr'],
+                        $newType['attr'],
                         $node->getNode('arguments'),
                         $node->getLine()
                     );
@@ -160,7 +160,7 @@ class Twig_Optimizations_NodeVisitor_GetAttributeOptimizer extends Twig_BaseNode
 
     private function getTypeWithMethod($class, $methodName)
     {
-        if(empty($class)) {
+        if(empty($class) || is_a($class, 'Twig_Template', true)) {
             return null;
         }
 
