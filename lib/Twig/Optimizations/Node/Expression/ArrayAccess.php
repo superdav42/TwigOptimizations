@@ -10,9 +10,9 @@
  */
 class Twig_Optimizations_Node_Expression_ArrayAccess extends Twig_Node_Expression
 {
-    public function __construct(Twig_Node_Expression $node, $name, $lineno)
+    public function __construct(Twig_Node_Expression $node, Twig_Node $name, $lineno)
     {
-        parent::__construct(array('node' => $node), array('name' => $name, 'safe' => false), $lineno);
+        parent::__construct(array('node' => $node, 'name' => $name), array('safe' => false), $lineno);
 
         if ($node instanceof Twig_Node_Expression_Name) {
             $node->setAttribute('always_defined', true);
@@ -24,7 +24,7 @@ class Twig_Optimizations_Node_Expression_ArrayAccess extends Twig_Node_Expressio
         $compiler
             ->subcompile($this->getNode('node'))
             ->raw('[')
-            ->repr($this->getAttribute('name'))
+            ->subcompile($this->getNode('name'))
             ->raw(']')
         ;
     }

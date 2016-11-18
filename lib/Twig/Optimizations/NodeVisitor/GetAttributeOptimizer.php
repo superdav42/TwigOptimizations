@@ -55,53 +55,89 @@ class Twig_Optimizations_NodeVisitor_GetAttributeOptimizer extends Twig_BaseNode
     protected function doLeaveNode(Twig_Node $node, Twig_Environment $env) {
         if ($node instanceof Twig_Node_Expression_GetAttr) {
 
-            if (isset($this->types[$this->index])) {
+            if (Twig_Template::ARRAY_CALL === $node->getAttribute('type') || 
+                (Twig_Template::METHOD_CALL !== $node->getAttribute('type') && isset($this->types[$this->index]) && 'array' === $this->types[$this->index]['class'])) {
+
+                $originalAttributeNode = $node->getNode('attribute');
+
+                $attrNode = new Twig_Optimizations_Node_Expression_ArrayAccess(
+                    clone $node->getNode('node'),
+                    $originalAttributeNode,
+                    $node->getLine()
+                );
+
+                if ($node->getAttribute('is_defined_test')) {
+                    $simpleAttrNode = new Twig_Node_Expression_Constant(true, $node->getLine());
+
+                } elseif ($originalAttributeNode instanceof Twig_Node_Expression_Function && $originalAttributeNode->getAttribute('name') == 'optimizer_twig_get_attribute') {
+                    $realGetAttr = $originalAttributeNode->getNode('arguments')->getNode(4);
+
+                    $node->setNode('attribute', $realGetAttr);
+
+                    $simpleAttrNode = clone $attrNode;
+                    $simpleAttrNode->setNode('name', $realGetAttr);
+                }  else {
+                    $simpleAttrNode = $attrNode;
+                }
+
+                $testExpr = new Twig_Node_Expression_Function(
+                    'isset',
+                    new Twig_Node(array($attrNode), array(), $node->getLine()),
+                    $node->getLine()
+                );
+
+                $node = new Twig_Node_Expression_Conditional(
+                    $testExpr,
+                    $simpleAttrNode,
+                    $node,
+                    $node->getLine()
+                );
+            } elseif (isset($this->types[$this->index])) {
+
                 $type = $this->types[$this->index];
                 $attrNode = false;
 
-                if (Twig_Template::METHOD_CALL !== $node->getAttribute('type') && 'array' === $type['class']) {
+                if(Twig_Template::METHOD_CALL !== $node->getAttribute('type') && ($newType = $this->getTypeWithProperty($type['class'], $type['attr']))) {
 
-                    $attrNode = new Twig_Optimizations_Node_Expression_ArrayAccess(
-                        clone $node->getNode('node'),
-                        $type['attr'],
-                        $node->getLine()
-                    );
-
-                    $testExpr = new Twig_Node_Expression_Function(
-                        'isset',
-                        new Twig_Node(array($attrNode), array(), $node->getLine()),
-                        $node->getLine()
-                    );
-
-                } elseif(Twig_Template::METHOD_CALL !== $node->getAttribute('type') && ($newType = $this->getTypeWithProperty($type['class'], $type['attr']))) {
-
+                    $nameNode = clone $node->getNode('node');
+                    $nameNode->setAttribute('ignore_strict_check', true);
                     $testExpr = new Twig_Optimizations_Node_Expression_Binary_InstanceOf(
-                        $node->getNode('node'),
+                        $nameNode,
                         $newType['class'],
                         $node->getLine()
                     );
 
-                    $attrNode = new Twig_Optimizations_Node_Expression_GetProperty(
-                        clone $node->getNode('node'),
-                        $newType['attr'],
-                        $node->getLine()
-                    );
+                    if ($node->getAttribute('is_defined_test')) {
+                        $attrNode = new Twig_Node_Expression_Constant(true, $node->getLine());
+                    } else {
+                        $attrNode = new Twig_Optimizations_Node_Expression_GetProperty(
+                            clone $node->getNode('node'),
+                            $newType['attr'],
+                            $node->getLine()
+                        );
+                    }
 
 
                 } elseif(($newType = $this->getTypeWithMethod($type['class'], $type['attr']))) {
 
+                    $nameNode = clone $node->getNode('node');
+                    $nameNode->setAttribute('ignore_strict_check', true);
                     $testExpr = new Twig_Optimizations_Node_Expression_Binary_InstanceOf(
-                        $node->getNode('node'),
+                        $nameNode,
                         $newType['class'],
                         $node->getLine()
                     );
 
-                    $attrNode = new Twig_Node_Expression_MethodCall(
-                        clone $node->getNode('node'),
-                        $newType['attr'],
-                        $node->getNode('arguments'),
-                        $node->getLine()
-                    );
+                    if ($node->getAttribute('is_defined_test')) {
+                        $attrNode = new Twig_Node_Expression_Constant(true, $node->getLine());
+                    } else {
+                        $attrNode = new Twig_Node_Expression_MethodCall(
+                            clone $node->getNode('node'),
+                            $newType['attr'],
+                            $node->getNode('arguments'),
+                            $node->getLine()
+                        );
+                    }
                 }
                 
                 if($attrNode) {
@@ -114,20 +150,22 @@ class Twig_Optimizations_NodeVisitor_GetAttributeOptimizer extends Twig_BaseNode
                 }
                 
             } else {
+                $nameNode = clone $node->getNode('node');
+                $nameNode->setAttribute('ignore_strict_check', true);
                 $node = new Twig_Node_Expression_Function(
-                        'optimizer_twig_get_attribute',
-                        new Twig_Node(
-                            array(
-                                new Twig_Node_Expression_Name('_self', $node->getLine()),
-                                new Twig_Node_Expression_Constant($this->index, $node->getLine()),
-                                $node->getNode('node'),
-                                $node->getNode('attribute'),
-                                $node,
-                            ),
-                            array(),
-                            $node->getLine()
+                    'optimizer_twig_get_attribute',
+                    new Twig_Node(
+                        array(
+                            new Twig_Node_Expression_Name('_self', $node->getLine()),
+                            new Twig_Node_Expression_Constant($this->index, $node->getLine()),
+                            $nameNode,
+                            $node->getNode('attribute'),
+                            $node,
                         ),
+                        array(),
                         $node->getLine()
+                    ),
+                    $node->getLine()
                 );
             }
 
