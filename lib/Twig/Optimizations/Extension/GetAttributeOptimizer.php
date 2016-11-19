@@ -51,7 +51,7 @@ class Twig_Optimizations_Extension_GetAttributeOptimizer extends Twig_Extension 
     {
         $templateName = $template->getTemplateName();
 
-        $this->types[$templateName][$nodeId] = array('attr' => (string) $item, 'class' => (is_array($object) || $object instanceof ArrayAccess) ? 'array' : (is_object($object) ? get_class($object) : false));
+        $this->types[$templateName][$nodeId] = array('attr' => (string) $item, 'class' => is_array($object) ? 'array' : (is_object($object) ? get_class($object) : false));
 
         return $result;
     }
@@ -68,6 +68,11 @@ class Twig_Optimizations_Extension_GetAttributeOptimizer extends Twig_Extension 
             $content = $this->env->compileSource($this->env->getLoader()->getSource($name), $name);
             $key = $cache->generateKey($name, $cls);
             $cache->write($key, $content);
+            if (function_exists('opcache_invalidate')) {
+                opcache_invalidate($key, true);
+            } elseif (function_exists('apc_compile_file')) {
+                apc_compile_file($key);
+            }
         }
     }
 }
